@@ -29,7 +29,7 @@ DEBUG = os.environ.get("DISFACTORY_BACKEND_DEBUG", "true").lower() == "true"
 
 # get allowed_host from env, if in DEBUG mode, add local hosts in
 
-allowed_hosts = []
+allowed_hosts = ["*"]
 
 hosts_in_env = os.environ.get("DISFACTORY_ALLOWED_HOST", None)
 print(hosts_in_env)
@@ -183,7 +183,7 @@ CORS_ORIGIN_WHITELIST = [
 ]
 CORS_ORIGIN_WHITELIST += os.environ.get(
     'DISFACTORY_BACKEND_CORS_ORIGIN_WHITELIST',
-    '',
+    'https://a.b.c',
 ).split(',')
 
 TAIWAN_MAX_LATITUDE = 25.298401
