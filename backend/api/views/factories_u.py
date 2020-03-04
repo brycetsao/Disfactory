@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-
+import logging
 from rest_framework.decorators import api_view
 
 from django.db import transaction
@@ -14,6 +14,7 @@ from ..serializers import FactorySerializer
 from .utils import _get_client_ip
 
 from django.core.exceptions import ObjectDoesNotExist
+LOGGER = logging.getLogger(__name__)
 
 
 @api_view(['PUT', 'GET'])
@@ -27,7 +28,7 @@ def update_factory_attribute(request, factory_id):
                 serializer.errors,
                 status=400,
             )
-
+         
         updated_factory_fields = put_body.copy()
         updated_factory_fields.pop("others", None)
         updated_factory_fields.pop("contact", None)
@@ -41,6 +42,10 @@ def update_factory_attribute(request, factory_id):
             # new_point = Point(new_lng, new_lat, srid=4326)
             # new_point.transform(settings.POSTGIS_SRID)
             # updated_factory_fields["point"] = new_point
+            LOGGER.info(F"Factory position cannot be modified.: {new_lng}")
+            LOGGER.info(F"Factory position cannot be modified.: {new_lat}")
+
+           
             return HttpResponse(
                 "Factory position cannot be modified.",
                 status=400,
@@ -48,7 +53,7 @@ def update_factory_attribute(request, factory_id):
 
         if "status" in put_body:
             updated_factory_fields["status_time"] = datetime.now()
-
+            
         new_report_record_fields = {
             "factory_id": factory_id,
             "user_ip": _get_client_ip(request),
@@ -62,16 +67,22 @@ def update_factory_attribute(request, factory_id):
             Factory.objects.filter(pk=factory_id).update(**updated_factory_fields)
             ReportRecord.objects.create(**new_report_record_fields)
             factory = Factory.objects.get(pk=factory_id)
-
+         
         serializer = FactorySerializer(factory)
         return JsonResponse(serializer.data, safe=False)
+       
     elif request.method == "GET":
         try:
             factory = Factory.objects.get(pk=factory_id)
             serializer = FactorySerializer(factory)
             return JsonResponse(serializer.data, safe=False)
+            
         except ObjectDoesNotExist:
+            LOGGER.info(F"new FactorySerializer created with id: {serializer.data}")
             return HttpResponse(
+
                 f"Factory id {factory_id} not existed.",
+               
                 status=400,
             )
+             

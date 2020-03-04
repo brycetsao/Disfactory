@@ -2,7 +2,7 @@ from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.db import transaction
 import django_q.tasks
-
+import logging
 from rest_framework.decorators import api_view
 
 from ..models import Image, Factory, ReportRecord
@@ -12,22 +12,26 @@ from .utils import (
     _get_image_original_date,
     _get_client_ip,
 )
+LOGGER = logging.getLogger(__name__)
 
+       
 
 @api_view(['POST'])
 def post_factory_image(request, factory_id):
     if not Factory.objects.filter(pk=factory_id).exists():
+         LOGGER.info(f"Factory ID {factory_id} does not exist.",)
         return HttpResponse(
             f"Factory ID {factory_id} does not exist.",
             status=400,
         )
     f_image = request.FILES['image']
     if not _is_image(f_image):
+        LOGGER.info(f"is not Factory image created : {f_image}")
         return HttpResponse(
             "The uploaded file cannot be parsed to Image",
             status=400,
         )
-
+       
     f_image.seek(0)
     image_original_date = _get_image_original_date(f_image)
 
@@ -55,3 +59,4 @@ def post_factory_image(request, factory_id):
     f_image.seek(0)
     django_q.tasks.async_task('api.tasks.upload_image', f_image.read(), settings.IMGUR_CLIENT_ID, img.id)
     return JsonResponse(img_serializer.data, safe=False)
+    
